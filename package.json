@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pkg index.js --targets node9-win-x64,node9-macos-x64,node9-linux-x64 --out-path build"
   },
-  "author": "",
+  "author": "jorick.vanhees@incentro.com",
   "license": "ISC",
   "dependencies": {
     "byte-buffer": "^1.0.3",
