@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "byte-buffer": "^1.0.3",
-    "firebase-admin": "^5.12.0"
+    "firebase-admin": "^5.12.0",
+    "node-webcam": "^0.4.3",
+    "npm": "^6.1.0"
   }
 }

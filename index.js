@@ -3,6 +3,7 @@ var admin = require('firebase-admin');
 var fs = require('fs');
 var dgram = require('dgram');
 var os = require('os');
+var NodeWebcam = require('node-webcam');
 
 var server = dgram.createSocket('udp4');
 
@@ -18,9 +19,30 @@ var app = admin.initializeApp({
   databaseURL: "https://racing-leaderboard.firebaseio.com"
 });
 
+//Default options
+var opts = {
+    width: 1280,
+    height: 720,
+    quality: 90,
+    // Save shots in memory
+    saveShots: true,
+    output: "jpg",
+    //Which camera to use
+    //Use Webcam.list() for results
+    //false for default device
+    device: false,
+    // [location, buffer, base64]
+    // Webcam.CallbackReturnTypes
+    callbackReturn: "location",
+    verbose: true
+};
+
+var Webcam = NodeWebcam.create( opts );
+
 var db = admin.firestore();
 var realtime_db = admin.database();
 var clients_ref = realtime_db.ref('clients');
+var bucket = admin.storage().bucket();
 
 // floats = 4 bytes
 laps = [];
@@ -30,6 +52,8 @@ last_sector2 = 0;
 invalid_lap = false;
 started = false;
 last_update = new Date();
+last_snapshot = new Date();
+snapshots = [];
 client_name = os.hostname().replace(/[.#$\[\]]/g, '-');
 
 console.log('Starting listener for client "' + client_name + '"');
@@ -65,6 +89,14 @@ server.on('message', function (message, remote) {
 		last_update = now;
 	}
 
+	if (now - last_snapshot > 10 * 1000) {
+		Webcam.capture( String(last_snapshot.getTime()), function( err, data ) {
+			if (!err) {
+				snapshots.push(data);
+			}
+		});
+	}
+
 	// Full lap
 	if (data.m_lap != current_lap && data.m_lap != 0) {
 		if (!started) {
@@ -90,9 +122,22 @@ server.on('message', function (message, remote) {
 			'client': client_name
 		};
 
+		let lap_id;
+
 		db.collection('timings').add(last_lap_data).then(ref => {
-			console.info('Added new lap with ID: ', ref.id);
+			lap_id = ref.id;
+			console.info('Added new lap with ID: ', lap_id);
 		})
+
+		// Save snapshots to storage
+		for (var i = 0, l = snapshots.length; i < l; i++) {
+			bucket.upload(snapshots[i], { destination: lap_id + '/' + snapshots[i] }, function(err) {
+				if (err) console.log(err);
+				fs.unlink(snapshots[i]);
+				delete snapshots[i];
+			});
+		}
+
 		invalid_lap = false;
 	}
 });
