@@ -65,6 +65,7 @@ console.log('Starting listener for client "' + client_name + '"');
 
 server.on('listening', function () {
 	var address = server.address();
+	server.setBroadcast(true);
 	console.log('UDP Server listening on ' + address.address + ":" + address.port);
 });
 
