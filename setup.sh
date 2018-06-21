@@ -9,5 +9,3 @@ sudo apt-get install -y fswebcam
 node -v
 
 npm install
-
-node index

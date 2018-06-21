@@ -96,6 +96,7 @@ server.on('message', function (message, remote) {
 				snapshots.push(data);
 			}
 		});
+		last_snapshot = now;
 	}
 
 	// Full lap
