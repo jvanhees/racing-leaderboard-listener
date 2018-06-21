@@ -13,6 +13,7 @@ var serviceAccount = require('./credentials.json');
 
 var PORT = 20777;
 var HOST = '';
+var snapshotLocation = 'snapshots/';
 
 var app = admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -57,6 +58,8 @@ last_snapshot = new Date();
 snapshots = [];
 client_name = os.hostname().replace(/[.#$\[\]]/g, '-');
 
+console.log('Available webcams:', Webcam.list());
+
 console.log('Starting listener for client "' + client_name + '"');
 
 server.on('listening', function () {
@@ -91,7 +94,7 @@ server.on('message', function (message, remote) {
 	}
 
 	if (now - last_snapshot > 10 * 1000) {
-		Webcam.capture( String(last_snapshot.getTime()), function( err, data ) {
+		Webcam.capture( snapshotLocation + String(last_snapshot.getTime()), function( err, data ) {
 			if (!err) {
 				snapshots.push(data);
 			}
