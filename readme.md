@@ -1,3 +1,11 @@
+# Setup
+
+- Clone this repository
+- `chmod u+x setup.sh`
+- `./setup.sh`
+- Add credentials.json
+- `node index.js`
+
 ## Tracks
 
 - 0: Melbourne

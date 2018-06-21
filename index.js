@@ -16,7 +16,8 @@ var HOST = '';
 
 var app = admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://racing-leaderboard.firebaseio.com"
+  databaseURL: "https://racing-leaderboard.firebaseio.com",
+  storageBucket: "gs://racing-leaderboard.appspot.com"
 });
 
 //Default options
@@ -122,21 +123,18 @@ server.on('message', function (message, remote) {
 			'client': client_name
 		};
 
-		let lap_id;
-
 		db.collection('timings').add(last_lap_data).then(ref => {
-			lap_id = ref.id;
-			console.info('Added new lap with ID: ', lap_id);
-		})
+			let lap_id = ref.id;
+			console.info('Added new lap with ID: ', lap_id);			
 
-		// Save snapshots to storage
-		for (var i = 0, l = snapshots.length; i < l; i++) {
-			bucket.upload(snapshots[i], { destination: lap_id + '/' + snapshots[i] }, function(err) {
-				if (err) console.log(err);
-				fs.unlink(snapshots[i]);
-				delete snapshots[i];
+			// Save snapshots to storage
+			snapshots.forEach((snapshot) => {
+				bucket.upload(snapshot, { destination: 'lap_photos/' + lap_id + '/' + snapshot }, (err, metadata, apiResponse) => {
+					if (err) console.log(err);
+					fs.unlinkSync(snapshot);
+				});
 			});
-		}
+		});
 
 		invalid_lap = false;
 	}
