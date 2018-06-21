@@ -58,7 +58,8 @@ last_snapshot = new Date();
 snapshots = [];
 client_name = os.hostname().replace(/[.#$\[\]]/g, '-');
 
-console.log('Available webcams:', Webcam.list());
+console.log('Available webcams:');
+Webcam.list( l => { console.log(" -> " + l); });
 
 console.log('Starting listener for client "' + client_name + '"');
 
