@@ -12,6 +12,7 @@ var serviceAccount = require('./credentials.json');
 
 var PORT = 20777;
 var HOST = '';
+var snapshotLocation = 'snapshots';
 
 var app = admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -34,7 +35,7 @@ invalid_lap = false;
 started = false;
 last_update = new Date();
 last_snapshot = new Date();
-snapshots = ['image.jpg'];
+snapshots = ['test.jpg'];
 client_name = os.hostname().replace(/[.#$\[\]]/g, '-');
 
 current_lap = 1;
@@ -61,12 +62,26 @@ db.collection('timings').add(last_lap_data).then(ref => {
 	console.info('Added new lap with ID: ', lap_id);			
 
 	// Save snapshots to storage
-	snapshots.forEach((snapshot) => {
-		bucket.upload(snapshot, { destination: 'lap_photos/' + lap_id + '/' + snapshot }, (err, metadata, apiResponse) => {
-			if (err) console.log(err);
-			console.log(snapshot);
-			return;
-			//fs.unlinkSync(snapshot);
+	const uploads = snapshots.map((file) => {
+		return bucket.upload(file, { destination: 'lap_photos/' + lap_id + '/' + file }).then((response) => {
+			return Promise.resolve(response[0].name);
+		});
+	});
+
+	Promise.all(uploads).then((uploadedFiles) => {
+		console.log('Uploaded snapshots, updating database.');
+		console.log(uploadedFiles);
+		ref.update({ snapshots: uploadedFiles }).then(() => {
+			console.log('Updated database, deleting local snapshots.');
+			// Remove the files
+			fs.readdir(snapshotLocation, (err, files) => {
+				if (files) {
+					for (const file of files) {
+						fs.unlink(path.join(directory, file));
+					}
+				}
+			});
+
 		});
 	});
 });

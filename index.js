@@ -13,7 +13,7 @@ var serviceAccount = require('./credentials.json');
 
 var PORT = 20777;
 var HOST = '';
-var snapshotLocation = 'snapshots/';
+var snapshotLocation = 'snapshots';
 
 var app = admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -96,7 +96,7 @@ server.on('message', function (message, remote) {
 	}
 
 	if (now - last_snapshot > 10 * 1000) {
-		Webcam.capture( snapshotLocation + String(last_snapshot.getTime()), function( err, data ) {
+		Webcam.capture( path.join(snapshotLocation, String(last_snapshot.getTime())), function( err, data ) {
 			if (!err) {
 				snapshots.push(data);
 			}
@@ -133,11 +133,31 @@ server.on('message', function (message, remote) {
 			let lap_id = ref.id;
 			console.info('Added new lap with ID: ', lap_id);			
 
+			const uploadFile = (filename) => {
+			  return bucket
+			    .upload(filename)
+			};
+
 			// Save snapshots to storage
-			snapshots.forEach((snapshot) => {
-				bucket.upload(snapshot, { destination: 'lap_photos/' + lap_id + '/' + snapshot }, (err, metadata, apiResponse) => {
-					if (err) console.log(err);
-					fs.unlinkSync(snapshot);
+			const uploads = snapshots.map((file) => {
+				return bucket.upload(file, { destination: 'lap_photos/' + lap_id + '/' + file }).then((response) => {
+					return Promise.resolve(response[0].name);
+				});
+			});
+
+			Promise.all(uploads).then((uploadedFiles) => {
+				console.log('Uploaded snapshots, updating database.');
+				ref.update({ snapshots: uploadedFiles }).then(() => {
+					console.log('Updated database, deleting local snapshots.');
+					// Remove the files
+					fs.readdir(snapshotLocation, (err, files) => {
+						if (files) {
+							for (const file of files) {
+								fs.unlink(path.join(directory, file));
+							}
+						}
+					});
+
 				});
 			});
 		});
